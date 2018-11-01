@@ -9,11 +9,15 @@ const userName = JSON.stringify({'name':process.argv[2]});
 let client = new NET.Socket();
 let lastHeartBeatDetected;
  
-client.connect(PORT, HOST, ()=>{
-  console.log('Client connected to: ' + HOST + ':' + PORT);
+//establishes initial connection with server
+function makeInitialConnection(){
+  return client.connect(PORT, HOST, ()=>{
+    console.log('Client connected to: ' + HOST + ':' + PORT);
+    client.write(userName)
+  });
+}
 
-  client.write(userName)
-});
+makeInitialConnection();
 
 client.on('data', (data)=>{    
   console.log('Client received: ' + data);
@@ -31,6 +35,8 @@ client.on('data', (data)=>{
       //if current heartbeat is more than 3 seconds ahead of current heartbeat, trigger event
       if ( lastHeartBeatDetected && response.epoch - lastHeartBeatDetected > 2 ) {
         console.log('your connection is delayed by more than 2 seconds.  reconnect and re-login');
+        client.destroy();
+        makeInitialConnection();
       }
       //base case
       lastHeartBeatDetected = response.epoch
