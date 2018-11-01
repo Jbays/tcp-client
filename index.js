@@ -1,16 +1,18 @@
-require('dotenv').config();
 const NET = require('net');
+require('dotenv').config();
 
 const HOST = process.env.HOST || 'localhost';
 const PORT = process.env.PORT || 8080;
+//NOTE: in principle, user could send non-string data && cause unexpected results
+const userName = JSON.stringify({'name':process.argv[2]});
 
 let client = new NET.Socket();
 let lastHeartBeatDetected;
  
 client.connect(PORT, HOST, ()=>{
   console.log('Client connected to: ' + HOST + ':' + PORT);
-  //"log in"
-  client.write(JSON.stringify({"name":"Justin Baize"}))
+
+  client.write(userName)
 });
 
 client.on('data', (data)=>{    
