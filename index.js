@@ -1,21 +1,35 @@
 const NET = require('net');
 require('dotenv').config();
 
+const prompt = require('prompt');
 const HOST = process.env.HOST || 'localhost';
 const PORT = process.env.PORT || 8080;
 //NOTE: in principle, user could send non-string data && cause unexpected results
 const userName = JSON.stringify({'name':process.argv[2]});
 // const sendingJSON = JSON.stringify(process.argv[3]);
-// console.log('sendingJSON',sendingJSON);
 
 let client = new NET.Socket();
 let lastHeartBeatDetected;
  
+prompt.get(['inputJson','sendMoreJson'],(err,result)=>{
+
+  if ( result.inputJson !== 'null' ) {
+    console.log('result.json was not null');
+    client.write(result.inputJson);
+  } 
+
+  if ( Boolean(result.sendMoreJson) === true ) {
+    prompt.start();
+  }
+  
+})
+
 //establishes initial connection with server
-function makeInitialConnection(){
-  return client.connect(PORT, HOST, ()=>{
-    console.log('Client connected to: ' + HOST + ':' + PORT);
+function makeInitialConnection(port,host){
+  return client.connect(port, host, ()=>{
+    console.log(`Client connected to host:${host} @ port:${port}`);
     client.write(userName)
+    prompt.start();
   });
 }
 
@@ -24,24 +38,39 @@ function checkHeartBeat(lastHeartBeat,currHeartBeat){
   if ( currHeartBeat - lastHeartBeat > 2 ) {
     console.log('your connection is delayed by more than 2 seconds.  reconnect and re-login');
     client.destroy();
-    makeInitialConnection();
+    makeInitialConnection(PORT,HOST);
   }
 }
 
-makeInitialConnection();
+makeInitialConnection(PORT,HOST);
 
 client.setEncoding('utf8');
 
-// client.on('connect',()=>{})
+client.on('ready',()=>{
+  console.log('youre ready to do work!');
+  //NOTE:  both these requests work and receive responses
+  // client.write(JSON.stringify({"request":"time"}));
+  // client.write(JSON.stringify({"request":"count"}));
+  // prompt.start();
+})
+
+client.on('event',()=>{
+  console.log('you triggered an event');
+})
 
 client.on('data', (data)=>{    
-  console.log('Client received: ' + data);
+  // console.log('Client received: ' + data +'\n');
   let allResponses = data.toString().split('\n');
   //drop newline
   allResponses.pop();
 
   //passes through each response
   allResponses.forEach((response)=>{
+
+    if ( !response.includes('"type" : "heartbeat"') ) {
+      console.log('response from server',response);
+    }
+
     //assigns heartbeat data to variables
     //and invokes setTimeout on checkHeartBeat function
     if ( response.includes('"type" : "heartbeat"') ) {
