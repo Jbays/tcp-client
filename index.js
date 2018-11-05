@@ -9,6 +9,8 @@ const userName = JSON.stringify({'name':process.argv[2]});
 // const sendingJSON = JSON.stringify(process.argv[3]);
 
 let client = new NET.Socket();
+client.setEncoding('utf8');
+
 let lastHeartBeatDetected;
  
 //establishes initial connection with server
@@ -19,23 +21,7 @@ function makeInitialConnection(port,host){
   });
 }
 
-//simple monitoring of heartbeat.
-function checkHeartBeat(lastHeartBeat,currHeartBeat){
-  if ( currHeartBeat - lastHeartBeat > 2 ) {
-    console.log('your connection is delayed by more than 2 seconds.  reconnect and re-login');
-    client.destroy();
-    makeInitialConnection(PORT,HOST);
-  }
-}
-
 makeInitialConnection(PORT,HOST);
-
-client.setEncoding('utf8');
-
-
-client.on('event',()=>{
-  console.log('you triggered an event');
-})
 
 client.on('data', (data)=>{
   // console.log('Client received: ' + data +'\n');
@@ -49,11 +35,32 @@ client.on('data', (data)=>{
       console.log('response from server',response);
     }
 
+    //checks the response for "time" calls
+    if ( response.includes(process.argv[2]) && response.includes('random') ) {
+      if ( isValidJson(response) ) {
+        let json = JSON.parse(response);
+
+        if ( json.msg.random > 30 ) {
+          process.stdout.write('Result of "time" call greater than 30! \n');
+        }
+      }
+    };
+
     //assigns heartbeat data to variables
     //and invokes setTimeout on checkHeartBeat function
     if ( response.includes('"type" : "heartbeat"') ) {
       let currentHeartBeatTime = parseInt(response.split(':')[2].slice(0,-1));
+
       if ( lastHeartBeatDetected ) {
+        //simple monitoring of heartbeat.
+        function checkHeartBeat(lastHeartBeat,currHeartBeat){
+          if ( currHeartBeat - lastHeartBeat > 2 ) {
+            console.log('your connection is delayed by more than 2 seconds.  reconnect and re-login');
+            client.destroy();
+            makeInitialConnection(PORT,HOST);
+          }
+        }
+
         setTimeout(checkHeartBeat,3000,lastHeartBeatDetected,currentHeartBeatTime);
       }
       lastHeartBeatDetected = currentHeartBeatTime;
@@ -89,12 +96,14 @@ process.stdin.on('data', (text)=>{
   }
 
   if ( isValidJson(text) ) {
-    client.write(text);
+    let json = JSON.parse(text);
+    json.id = process.argv[2];
+
+    client.write(JSON.stringify(json));
   } else {
     process.stdout.write('Your input MUST be valid JSON! \n');
   }
 
-  // console.log(JSON.parse(text));
 
 });
 
