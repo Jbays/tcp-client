@@ -19,9 +19,20 @@ function makeInitialConnection(){
   });
 }
 
+//simple monitoring of heartbeat.
+function checkHeartBeat(lastHeartBeat,currHeartBeat){
+  if ( currHeartBeat - lastHeartBeat > 2 ) {
+    console.log('your connection is delayed by more than 2 seconds.  reconnect and re-login');
+    client.destroy();
+    makeInitialConnection();
+  }
+}
+
 makeInitialConnection();
 
 client.setEncoding('utf8');
+
+// client.on('connect',()=>{})
 
 client.on('data', (data)=>{    
   console.log('Client received: ' + data);
@@ -29,55 +40,44 @@ client.on('data', (data)=>{
   //drop newline
   allResponses.pop();
 
-  //simple monitoring of heartbeat.
-  //NOTE: sometimes the heartbeat is sent with invalid JSON.  Thus causing the parsing error!
-
-  //technically, this does not 'monitor' heartbeat as expected.  This checks time between heartbeat epochs
-  //AND when time between is too great, app disconnects then reconnects.
-  //instead, better is to independently check time.  Without relying on the next received heartbeat!
+  //passes through each response
   allResponses.forEach((response)=>{
+    //assigns heartbeat data to variables
+    //and invokes setTimeout on checkHeartBeat function
     if ( response.includes('"type" : "heartbeat"') ) {
-      console.log('winner winner chicken dinner!')
       let currentHeartBeatTime = parseInt(response.split(':')[2].slice(0,-1));
-
-      if ( lastHeartBeatDetected && currentHeartBeatTime - lastHeartBeatDetected > 2 ) {
-        console.log('your connection is delayed by more than 2 seconds.  reconnect and re-login');
-        client.destroy();
-        makeInitialConnection();
-      }
       
-      lastHeartBeatDetected = currentHeartBeatTime;
+      if ( lastHeartBeatDetected ) {
+        setTimeout(checkHeartBeat,3000,lastHeartBeatDetected,currentHeartBeatTime)
+      }
+
+      lastHeartBeatDetected = currentHeartBeatTime
     }
   })
-
-  //NOTE: NONE OF THIS CODE REALLY WORKS!
-  // process.stdin.setEncoding('utf8');
-
-  // process.stdin.on('readable', () => {
-  //   console.log('somethings happening!');
-  //   const chunk = process.stdin.read();
-  //   console.log('this is chunk',chunk);
-  //   if (chunk !== null) {
-  //     process.stdin.write(sendingJSON)
-  //     process.stdout.write(`data: ${chunk}`);
-  //   }
-  // });
-  
-  // process.stdin.on('end', () => {
-  //   process.stdout.write('end');
-  // });
-
-  
-  // process.stdin.on('error',(err)=>{
-  //   process.stdout.write(`this is your error: ${err}`);
-  // });
-  
 
   if (data.toString().endsWith('exit')) {
     client.destroy();
   }
-
 });
+
+//NOTE: NONE OF THIS CODE REALLY WORKS!
+// process.stdin.setEncoding('utf8');
+
+// process.stdin.on('readable', () => {
+//   const chunk = process.stdin.read();
+//   if (chunk !== null) {
+//     // process.stdin.write(sendingJSON)
+//     process.stdout.write(`data: ${chunk}`);
+//   }
+// });
+
+// process.stdin.on('end', () => {
+//   process.stdout.write('end');
+// });
+
+// process.stdin.on('error',(err)=>{
+//   process.stdout.write(`this is your error: ${err}`);
+// });
 
 // Add a 'close' event handler for the client socket
 client.on('close', ()=>{
