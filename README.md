@@ -35,6 +35,6 @@ To exit process, type quit then hit enter.
 `quit`
 
 ### Screenshot Example
-![Simple Demo Screenshot](https://github.com/Jbays/tcp-client/blob/master/src/screenshots/working-tcp-client "Simple Walkthrough of TCP Client's Basic Functionality")
+![Simple Demo Screenshot](https://github.com/Jbays/tcp-client/blob/master/screenshot/working-tcp-client.png "Simple Walkthrough of TCP Client's Basic Functionality")
 
 
