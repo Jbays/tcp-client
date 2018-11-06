@@ -6,7 +6,6 @@ const HOST = process.env.HOST || 'localhost';
 const PORT = process.env.PORT || 8080;
 //NOTE: in principle, user could send non-string data && cause unexpected results
 const userName = JSON.stringify({'name':process.argv[2]});
-// const sendingJSON = JSON.stringify(process.argv[3]);
 
 let client = new NET.Socket();
 client.setEncoding('utf8');
@@ -24,7 +23,6 @@ function makeInitialConnection(port,host){
 makeInitialConnection(PORT,HOST);
 
 client.on('data', (data)=>{
-  // console.log('Client received: ' + data +'\n');
   let allResponses = data.toString().split('\n');
   //drop newline
   allResponses.pop();
@@ -92,7 +90,7 @@ process.stdin.on('data', (text)=>{
   console.log('received data:', util.inspect(text));
 
   if (text === 'quit\n') {
-    done();
+    process.exit();
   }
 
   if ( text === 'both\n' ){
@@ -117,11 +115,6 @@ process.stdin.on('data', (text)=>{
   }
 
 });
-
-function done() {
-  console.log('Now that process.stdin is paused, there is nothing more to do.');
-  process.exit();
-}
 
 // Add a 'close' event handler for the client socket
 client.on('close', ()=>{
