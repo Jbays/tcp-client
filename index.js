@@ -95,7 +95,19 @@ process.stdin.on('data', (text)=>{
     done();
   }
 
-  if ( isValidJson(text) ) {
+  if ( text === 'both\n' ){
+    let count = {"request":"count"}
+    let time = {"request":"time"}
+    count.id = process.argv[2];
+    time.id = process.argv[2];
+
+    client.write(JSON.stringify(count));
+    
+    let timeCall = setTimeout(()=>{
+      client.write(JSON.stringify(time))
+    },2000);
+
+  } else if ( isValidJson(text) ) {
     let json = JSON.parse(text);
     json.id = process.argv[2];
 
@@ -103,7 +115,6 @@ process.stdin.on('data', (text)=>{
   } else {
     process.stdout.write('Your input MUST be valid JSON! \n');
   }
-
 
 });
 
